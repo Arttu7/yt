@@ -1,3 +1,5 @@
+//Made by Arttu
+
 package main
 
 import (
