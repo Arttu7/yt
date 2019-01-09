@@ -12,6 +12,7 @@ import (
 	"sync"
 )
 
+// Reads YT video ids from channel and then plays them using youtube-dl and omxplayer
 func play(messages chan string, wg *sync.WaitGroup) {
 	wg.Add(1)
 	for msg := range messages {
@@ -28,10 +29,13 @@ func play(messages chan string, wg *sync.WaitGroup) {
 	}
 	wg.Done()
 }
+
 func main() {
 	messages := make(chan string)
 	var wg sync.WaitGroup
+	//TODO: move hello handler code to own function instead of usin an anonymous function
 	helloHandler := func(w http.ResponseWriter, req *http.Request) {
+		//TODO: let users input also full YT addresses as well as just the id part; if vid is empty, skip playing
 		vid := "https://www.youtube.com/watch?v=" + req.URL.Query().Get("vid")
 		messages <- vid
 		io.WriteString(w, vid)
