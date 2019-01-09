@@ -12,6 +12,8 @@ import (
 	"sync"
 )
 
+var messages chan string
+
 // Reads YT video ids from channel and then plays them using youtube-dl and omxplayer
 func play(messages chan string, wg *sync.WaitGroup) {
 	wg.Add(1)
@@ -30,15 +32,14 @@ func play(messages chan string, wg *sync.WaitGroup) {
 	wg.Done()
 }
 func helloHandler(w http.ResponseWriter, req *http.Request) {
-		//TODO: let users input also full YT addresses as well as just the id part; if vid is empty, skip playing
-		vid := "https://www.youtube.com/watch?v=" + req.URL.Query().Get("vid")
-		messages <- vid
-		io.WriteString(w, vid)
+	//TODO: let users input also full YT addresses as well as just the id part; if vid is empty, skip playing
+	vid := "https://www.youtube.com/watch?v=" + req.URL.Query().Get("vid")
+	messages <- vid
+	io.WriteString(w, vid)
 }
 
-
 func main() {
-	messages := make(chan string)
+	messages = make(chan string)
 	var wg sync.WaitGroup
 	http.HandleFunc("/hello", helloHandler)
 	go play(messages, &wg)
