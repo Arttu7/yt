@@ -33,9 +33,18 @@ func play(messages chan string, wg *sync.WaitGroup) {
 }
 func helloHandler(w http.ResponseWriter, req *http.Request) {
 	//TODO: let users input also full YT addresses as well as just the id part; if vid is empty, skip playing
-	vid := "https://www.youtube.com/watch?v=" + req.URL.Query().Get("vid")
-	messages <- vid
-	io.WriteString(w, vid)
+	url := req.URL.Query().Get("vid")
+	if url != "" {
+		vid := url
+		startsWith := strings.HasPrefix(url, "https")
+		if !startsWith {
+			vid = "https://www.youtube.com/watch?v=" + url
+		}
+		messages <- vid
+		io.WriteString(w, vid)
+	} else {
+		io.WriteString(w, "Video failed.")
+	}
 }
 
 func main() {
