@@ -35,6 +35,10 @@ func helloHandler(w http.ResponseWriter, req *http.Request) {
 	//TODO: let users input also full YT addresses as well as just the id part; if vid is empty, skip playing
 	url := req.URL.Query().Get("vid")
 	if url != "" {
+		parts := strings.Split(url, "https://youtu.be/")
+		if len(parts) == 2 {
+			url = parts[1]
+		}
 		vid := url
 		startsWith := strings.HasPrefix(url, "https")
 		if !startsWith {
