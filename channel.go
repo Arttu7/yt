@@ -17,9 +17,10 @@ var pipe io.WriteCloser
 var msg chan string
 var skipall bool
 var count int
+var yt chan string
 
 // Reads YT video ids from channel and then plays them using youtube-dl and omxplayer
-func play(messages chan string, wg *sync.WaitGroup) {
+func youtube(messages chan string) {
 	for msg := range messages {
 		count = count - 1
 		if skipall {
@@ -30,7 +31,18 @@ func play(messages chan string, wg *sync.WaitGroup) {
 		}
 		video, _ := exec.Command("youtube-dl", "-f", "mp4", "-g", msg).Output()
 		fmt.Println(string(video))
-		cmd := exec.Command("omxplayer", "-o", "local", fmt.Sprintf("%s", strings.TrimRight(string(video), "\n")))
+		yt <- fmt.Sprintf("%s", strings.TrimRight(string(video), "\n"))
+	}
+}
+func play(yt chan string, wg *sync.WaitGroup) {
+	for video := range yt {
+		if skipall {
+			if count == 0 {
+				skipall = false
+			}
+			continue
+		}
+		cmd := exec.Command("omxplayer", "-o", "local", video)
 		pipe, _ = cmd.StdinPipe()
 		err := cmd.Start()
 		if err != nil {
@@ -44,8 +56,8 @@ func play(messages chan string, wg *sync.WaitGroup) {
 	log.Println("Shutting down...")
 	wg.Done()
 }
+
 func addHandler(w http.ResponseWriter, req *http.Request) {
-	//TODO: let users input also full YT addresses as well as just the id part; if vid is empty, skip playing
 	url := req.URL.Query().Get("vid")
 	if url != "" {
 		parts := strings.Split(url, "https://youtu.be/")
@@ -58,7 +70,7 @@ func addHandler(w http.ResponseWriter, req *http.Request) {
 			vid = "https://www.youtube.com/watch?v=" + url
 		}
 		go addtochan(vid)
-		io.WriteString(w, "Added to queue.")
+		io.WriteString(w, "Added to queue.\n")
 	} else {
 		io.WriteString(w, "Video failed.")
 	}
@@ -115,6 +127,7 @@ func forwardHandler(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 	messages = make(chan string)
+	yt = make(chan string)
 	var wg sync.WaitGroup
 	http.HandleFunc("/add", addHandler)
 	http.HandleFunc("/skip", skipHandler)
@@ -125,7 +138,8 @@ func main() {
 	http.HandleFunc("/f", forwardHandler)
 	log.Println("Welcome to youtube player!")
 	wg.Add(1)
-	go play(messages, &wg)
+	go youtube(messages)
+	go play(yt, &wg)
 	go http.ListenAndServe(":8080", nil)
 	wg.Wait()
 }
